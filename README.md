@@ -109,6 +109,38 @@ If you prefer to run the application without Docker:
    npm run dev
    ```
 
+### Database Migrations
+
+This project uses Sequelize migrations. After configuring your `.env` and ensuring Postgres is running, run migrations from the `backend` folder:
+
+```bash
+cd backend
+npx sequelize-cli db:migrate
+# or
+npm run migrate
+```
+
+If you are running the app via Docker Compose, the DB container must be up before running the migrations (or the backend container/migration step should be part of your compose setup).
+
+### Token-based Authentication (JWT)
+
+The backend includes JWT-based authentication utilities and middleware.
+
+Environment variables (set in `backend/.env` or top-level `.env`):
+
+```
+JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN=7d
+```
+
+Auth endpoints:
+
+- `POST /api/auth/register` - body: `{ email, password, firstName, lastName }` — registers a user and returns `{ user, token }`.
+- `POST /api/auth/login` - body: `{ email, password }` — returns `{ user, token }` on success.
+
+Protect routes using the `requireAuth` middleware located at `backend/src/middlewares/auth.ts`. It expects an `Authorization: Bearer <token>` header and attaches the token payload to `req.user`.
+
+
 ### Available Scripts
 
 Backend scripts available in the `backend` directory:

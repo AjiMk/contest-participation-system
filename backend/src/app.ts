@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { errorHandler } from './middlewares/errorHandler';
+import authRoutes from './routes/auth';
 import { sequelize } from './config/database';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -12,6 +13,9 @@ const app: Express = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Auth routes
+app.use('/api/auth', authRoutes);
 
 // Routes
 app.get('/health', (_req, res) => {

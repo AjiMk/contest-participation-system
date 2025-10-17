@@ -1,7 +1,7 @@
 import { Request } from 'express';
 
 // Re-export environment types
-export * from './env.js';
+export * from './env';
 
 export interface CustomError extends Error {
   status?: number;

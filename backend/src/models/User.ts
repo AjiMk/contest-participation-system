@@ -1,5 +1,5 @@
 import { Model, DataTypes } from 'sequelize';
-import { sequelize } from '../config/database.js';
+import { sequelize } from '../config/database';
 
 interface UserAttributes {
   id: string;
@@ -16,15 +16,16 @@ export interface UserInput extends Omit<UserAttributes, 'id' | 'createdAt' | 'up
 export interface UserOutput extends Required<UserAttributes> {}
 
 export class User extends Model<UserAttributes, UserInput> implements UserAttributes {
-  public id!: string;
-  public email!: string;
-  public password!: string;
-  public firstName!: string;
-  public lastName!: string;
-  public role!: 'user' | 'admin';
+  // use `declare` so TypeScript knows the shape but no runtime class fields are emitted
+  declare id: string;
+  declare email: string;
+  declare password: string;
+  declare firstName: string;
+  declare lastName: string;
+  declare role: 'user' | 'admin';
 
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 User.init(
