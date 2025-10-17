@@ -168,7 +168,101 @@ Backend scripts available in the `backend` directory:
 
 ## API Documentation
 
-[API documentation will be added here]
+Below are the primary backend API endpoints added for contests, questions, and participation along with the required roles and example requests.
+
+### Endpoints
+
+- GET /api/contests
+   - Description: List contests. Results should be filtered by contest visibility (NORMAL / VIP) depending on the caller's role.
+   - Roles: Guests (unauthenticated) may access public contest listings if the route allows `GUEST`; authenticated users see contests based on their role (USER → NORMAL, VIP → NORMAL+VIP, ADMIN → all).
+   - Example: `GET /api/contests` (use Authorization header to see private results)
+
+- POST /api/contests
+   - Description: Create a new contest.
+   - Roles: ADMIN only
+
+- GET /api/contests/:id
+   - Description: Get contest details. Service layer should enforce visibility rules (e.g., VIP-only contests).
+   - Roles: Depends on contest visibility. PUBLIC/GUEST allowed when contest is public.
+
+- PUT /api/contests/:id
+   - Description: Update contest
+   - Roles: ADMIN only
+
+- DELETE /api/contests/:id
+   - Description: Delete contest
+   - Roles: ADMIN only
+
+- GET /api/questions
+   - Description: List questions (should be filtered by contest and visibility).
+   - Roles: Guest allowed if the contest/questions are public; otherwise USER/VIP/ADMIN as applicable.
+
+- POST /api/questions
+   - Description: Create a question for a contest
+   - Roles: ADMIN only
+
+- PUT /api/questions/:id
+   - Description: Update a question
+   - Roles: ADMIN only
+
+- DELETE /api/questions/:id
+   - Description: Delete a question
+   - Roles: ADMIN only
+
+- POST /api/participation
+   - Description: Submit participation/entry for a contest
+   - Roles: Authenticated users (USER, VIP, ADMIN)
+
+- GET /api/participation
+   - Description: List participations. Admins can see all; users see their own; VIPs may have elevated viewing as appropriate.
+   - Roles: USER, VIP, ADMIN
+
+### Authorization header example
+
+All protected endpoints expect an Authorization header with a Bearer token. The token is the JWT returned by the login/register endpoints.
+
+Header format:
+
+```
+Authorization: Bearer <JWT_TOKEN>
+```
+
+Examples
+
+- curl (Windows / PowerShell):
+
+   ```bash
+   curl -H "Authorization: Bearer <YOUR_TOKEN>" http://localhost:3000/api/contests
+   ```
+
+- PowerShell Invoke-RestMethod:
+
+   ```powershell
+   $headers = @{ Authorization = "Bearer <YOUR_TOKEN>" }
+   Invoke-RestMethod -Uri "http://localhost:3000/api/contests" -Headers $headers -Method Get
+   ```
+
+- fetch (browser/node):
+
+   ```js
+   fetch('/api/contests', { headers: { Authorization: `Bearer ${token}` } })
+   ```
+
+- axios:
+
+   ```js
+   axios.get('/api/contests', { headers: { Authorization: `Bearer ${token}` } })
+   ```
+
+### Notes on role enforcement
+
+- Guests: can access endpoints that explicitly allow `GUEST` (e.g., public GET /api/contests).
+- USER: can access NORMAL contests and submit participations.
+- VIP: can access NORMAL and VIP contests.
+- ADMIN: full CRUD across contests and questions, and full visibility into participations.
+
+The middleware in `backend/src/middlewares` implements coarse access control. Fine-grained access to a particular contest (for example, checking that a user may join a VIP contest) should be implemented in the service/controller layer where the contest visibility and ownership are enforced.
+
 
 ## Development Guidelines
 

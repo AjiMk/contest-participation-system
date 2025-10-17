@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { errorHandler } from './middlewares/errorHandler';
 import authRoutes from './routes/auth';
+import contestsRoutes from './routes/contests';
+import questionsRoutes from './routes/questions';
+import participationRoutes from './routes/participation';
 import { sequelize } from './config/database';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -16,6 +19,11 @@ app.use(express.json());
 
 // Auth routes
 app.use('/api/auth', authRoutes);
+
+// Resource routes
+app.use('/api/contests', contestsRoutes);
+app.use('/api/questions', questionsRoutes);
+app.use('/api/participation', participationRoutes);
 
 // Routes
 app.get('/health', (_req, res) => {
