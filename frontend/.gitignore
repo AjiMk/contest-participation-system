@@ -1,0 +1,17 @@
+# Frontend (Vite + React)
+node_modules/
+dist/
+.vite/
+.cache/
+coverage/
+
+.env
+.env.*
+!.env.example
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
