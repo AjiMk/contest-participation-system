@@ -2,7 +2,7 @@ import React, { createContext, useContext, useMemo, useState, useEffect } from '
 import { Contest, LeaderboardEntry, Submission, User } from '@/types/domain';
 import { contests as seedContests, users as seedUsers, seedSubmissions, newId } from '@/data/mock';
 import { load, save } from './storage';
-import { post, type AuthResult } from '@/utils/api';
+import { post, get, type AuthResult } from '@/utils/api';
 import { getCookie, setCookie, deleteCookie } from '@/utils/cookies';
 
 type State = {
@@ -21,6 +21,7 @@ type Actions = {
   signOut: () => void;
   joinContest: (contestId: string) => void;
   submitAnswers: (contestId: string, answers: Submission['answers'], score: number) => void;
+  refreshContests: () => Promise<void>;
 };
 
 const AppCtx = createContext<(State & Actions) | null>(null);
@@ -28,11 +29,19 @@ const AppCtx = createContext<(State & Actions) | null>(null);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const persisted = load();
   const [users, setUsers] = useState<User[]>(persisted.users && persisted.users.length ? (persisted.users as User[]) : seedUsers);
-  const [contests] = useState(seedContests);
+  const [contests, setContests] = useState<Contest[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>(persisted.submissions.length ? persisted.submissions : seedSubmissions);
   const [joined, setJoined] = useState<Record<string,string>>(persisted.joined);
   const [prizes, setPrizes] = useState(persisted.prizes);
-  const [currentUser, setCurrentUser] = useState<User | undefined>(users.find(u => u.id === persisted.userId));
+  // Initialize currentUser from cookie snapshot first to avoid redirect on refresh
+  let initialUser: User | undefined = undefined;
+  try {
+    const cookieUser = getCookie('cps_user');
+    if (cookieUser) initialUser = JSON.parse(cookieUser) as User;
+  } catch {
+    // ignore
+  }
+  const [currentUser, setCurrentUser] = useState<User | undefined>(initialUser ?? users.find(u => u.id === persisted.userId));
 
   // Try bootstrap auth from cookies first (token + user snapshot), fallback to local storage mock
   useEffect(() => {
@@ -49,6 +58,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     // fallback is already applied via initial state
   }, []);
+
+  const refreshContests = async () => {
+    try {
+      const data = await get<any[]>('/contests');
+      const mapped: Contest[] = (data || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        description: c.description ?? '',
+        access: (c.access_level as 'normal' | 'vip') ?? 'normal',
+        startAt: c.starts_at ? new Date(c.starts_at).toISOString() : new Date().toISOString(),
+        endAt: c.ends_at ? new Date(c.ends_at).toISOString() : new Date().toISOString(),
+        prize: c.prize_title ?? '—',
+        questions: [],
+      }));
+      setContests(mapped);
+    } catch (e) {
+      setContests(seedContests);
+    }
+  };
+
+  // Load contests from backend; re-fetch when role changes to reflect VIP visibility
+  useEffect(() => { void refreshContests(); }, [currentUser?.role]);
 
   const signIn = (userId: string) => {
     const u = users.find(x => x.id === userId);
@@ -69,7 +100,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCookie('cps_token', res.token, 7);
       setCookie('cps_user', JSON.stringify(mapped), 7);
       setCurrentUser(mapped);
-      save({ userId: mapped.id, users, submissions, joined, prizes });
+      // ensure user catalog contains this user for local features
+      const nextUsers = users.some(u => u.id === mapped.id) ? users : [...users, { ...mapped }];
+      setUsers(nextUsers);
+      save({ userId: mapped.id, users: nextUsers, submissions, joined, prizes });
       return true;
     } catch (err) {
       return false;
@@ -112,6 +146,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       save({ userId: currentUser?.id, users, submissions, joined: next, prizes });
       return next;
     });
+    // Notify backend for in-progress tracking (best-effort)
+    try { void post('/participation/join', { contestId }); } catch {}
   };
 
   const submitAnswers = (contestId: string, answers: Submission['answers'], score: number) => {
@@ -130,23 +166,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return next;
     });
 
-    // Assign prize to top scorer so far (simple demo rule)
-    const lb = computeLeaderboard(contestId, submissions.concat(sub));
-    if (lb.length) {
-      const top = lb[0];
-      const contest = contests.find(c => c.id === contestId);
-      if (contest) {
-        setPrizes(p => {
-          const exists = p.find(x => x.contestId === contestId && x.userId === top.userId);
-          const next = exists ? p : [...p, { userId: top.userId, contestId, prize: contest.prize }];
-          save({ userId: currentUser?.id, users, submissions, joined, prizes: next });
-          return next;
-        });
-      }
-    }
+    // Prize awarding is computed server-side at contest end; no local assignment here
   };
 
-  const value = useMemo(() => ({ currentUser, users, contests, submissions, joined, prizes, signIn, signInWithCredentials, register, signOut, joinContest, submitAnswers }), [currentUser, users, contests, submissions, joined, prizes]);
+  const value = useMemo(() => ({ currentUser, users, contests, submissions, joined, prizes, signIn, signInWithCredentials, register, signOut, joinContest, submitAnswers, refreshContests }), [currentUser, users, contests, submissions, joined, prizes]);
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 };
 

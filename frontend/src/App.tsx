@@ -11,6 +11,7 @@ import TakeContest from '@/pages/TakeContest';
 import Leaderboard from '@/pages/Leaderboard';
 import History from '@/pages/History';
 import Admin from '@/pages/Admin';
+import AdminCreate from '@/pages/AdminCreateContest';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/history" element={<RoleGuard allow={['user','vip','admin']}><History /></RoleGuard>} />
         <Route path="/admin" element={<RoleGuard allow={['admin']}><Admin /></RoleGuard>} />
+        <Route path="/admin/create" element={<RoleGuard allow={['admin']}><AdminCreate /></RoleGuard>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppProvider>

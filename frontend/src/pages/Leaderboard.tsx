@@ -1,5 +1,7 @@
+import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { useApp, computeLeaderboard } from '@/store/context';
+import { useApp } from '@/store/context';
+import { get } from '@/utils/api';
 
 function useQuery() {
   const { search } = useLocation();
@@ -7,11 +9,25 @@ function useQuery() {
 }
 
 export default function Leaderboard() {
-  const { submissions, contests } = useApp();
+  const { contests } = useApp();
   const q = useQuery();
   const contestId = q.get('contest') ?? contests[0]?.id;
   const selected = contests.find(c => c.id === contestId) ?? contests[0];
-  const entries = selected ? computeLeaderboard(selected.id, submissions) : [];
+  const [entries, setEntries] = React.useState<{ userId: string; userName: string; score: number }[]>([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!selected) { setEntries([]); return; }
+        const data = await get<any[]>(`/participation/leaderboard/${selected.id}`);
+        if (!cancelled) setEntries(data);
+      } catch {
+        if (!cancelled) setEntries([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selected?.id]);
 
   return (
     <div className="container">
@@ -49,4 +65,3 @@ export default function Leaderboard() {
     </div>
   );
 }
-

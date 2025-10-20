@@ -1,16 +1,18 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middlewares/auth';
+import { optionalAuth } from '../middlewares/optionalAuth';
 import { requireRole } from '../middlewares/roles';
 import Contest from '../models/Contest';
 import { AuthRequest } from '../types';
 import { Op } from 'sequelize';
 import { createContestSchema, updateContestSchema } from '../shared/validation/contests';
 import type { ContestInput } from '../models/Contest';
+import { ParticipationStore } from '../services/participationStore';
 
 const router = Router();
 
 // Public: list contests (Guests allowed to GET)
-router.get('/', requireAuth, requireRole(['GUEST', 'USER', 'VIP', 'ADMIN']), async (req: AuthRequest, res: Response) => {
+router.get('/', optionalAuth, requireRole(['GUEST', 'USER', 'VIP', 'ADMIN']), async (req: AuthRequest, res: Response) => {
   const userRole = (req.user?.role || 'GUEST').toUpperCase();
 
   // Base where clause: only contests that are currently running (if starts_at/ends_at provided)
@@ -38,7 +40,7 @@ router.get('/', requireAuth, requireRole(['GUEST', 'USER', 'VIP', 'ADMIN']), asy
       where: {
         access_level: accessLevels,
         // merge the timeWhere via sequelize where syntax
-        ...timeWhere,
+        // ...timeWhere,
       },
       order: [['starts_at', 'ASC']],
     });
@@ -113,6 +115,7 @@ router.delete('/:id', requireAuth, requireRole(['ADMIN']), async (req: Request, 
     const contest = await Contest.findByPk(id);
     if (!contest) return res.status(404).json({ success: false, message: 'Contest not found' });
     await contest.destroy();
+    ParticipationStore.purgeContest(id);
     return res.json({ success: true, message: 'Contest deleted' });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err?.message || 'Failed to delete contest' });
