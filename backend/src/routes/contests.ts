@@ -17,14 +17,6 @@ router.get('/', optionalAuth, requireRole(['GUEST', 'USER', 'VIP', 'ADMIN']), as
 
   // Base where clause: only contests that are currently running (if starts_at/ends_at provided)
   const now = new Date();
-  const timeWhere: any = {
-    [Op.or]: [
-      { starts_at: null, ends_at: null },
-      { starts_at: { [Op.lte]: now }, ends_at: { [Op.gte]: now } },
-      { starts_at: { [Op.lte]: now }, ends_at: null },
-      { starts_at: null, ends_at: { [Op.gte]: now } },
-    ],
-  };
 
   // Access level filtering
   const accessLevels: Array<'normal' | 'vip'> = [];
@@ -39,8 +31,6 @@ router.get('/', optionalAuth, requireRole(['GUEST', 'USER', 'VIP', 'ADMIN']), as
     const contests = await Contest.findAll({
       where: {
         access_level: accessLevels,
-        // merge the timeWhere via sequelize where syntax
-        // ...timeWhere,
       },
       order: [['starts_at', 'ASC']],
     });
