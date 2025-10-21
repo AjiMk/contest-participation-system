@@ -10,10 +10,8 @@ A full-stack application for managing contest participation and submissions, bui
 - PostgreSQL with Sequelize ORM
 - Jest for testing
 - ESLint for code quality
-- Docker for containerization
 
 ## Recent Updates
-- Added Docker configuration with multi-container setup
 - Implemented basic Express server with health checks
 - Set up PostgreSQL database connection with Sequelize ORM
 - Added User model with TypeScript interfaces
@@ -37,9 +35,7 @@ contest-participation-system/
 │   │   ├── utils/             # Helper functions
 │   │   └── app.ts             # Express application setup
 │   ├── tests/                  # Test files
-│   ├── Dockerfile             # Backend container configuration
 │   └── package.json           # Dependencies and scripts
-└── docker-compose.yml        # Multi-container orchestration
 ```
 
 ## Getting Started
@@ -47,52 +43,33 @@ contest-participation-system/
 ### Prerequisites
 - Node.js 16 or higher
 - PostgreSQL
-- Docker (optional)
 
-### Running with Docker (Recommended)
+### Running the App
 
-1. Make sure you have Docker and Docker Compose installed on your system.
-
-2. Clone the repository:
+1. Clone the repository:
    ```bash
    git clone https://github.com/AjiMk/contest-participation-system.git
    cd contest-participation-system
    ```
 
-3. Start the application:
-   ```bash
-   docker-compose up --build
-   ```
-
-   This will:
-   - Build and start the backend server (available at http://localhost:3000)
-   - Start PostgreSQL database (available at localhost:5432)
-   - Set up all required environment variables
-   - Create persistent volume for database data
-
-4. To stop the application:
-   ```bash
-   docker-compose down
-   ```
-
 ### Local Development Setup
 
-If you prefer to run the application without Docker:
+Local development:
 
 1. Prerequisites:
    - Node.js 16 or higher
    - PostgreSQL 14 or higher
    - npm or yarn
 
-2. Clone and install dependencies:
+2. Backend: install dependencies:
    ```bash
    git clone https://github.com/AjiMk/contest-participation-system.git
    cd contest-participation-system/backend
    npm install
    ```
 
-3. Set up environment variables:
-   - Copy `.env.example` to `.env`
+3. Environment variables (root-level `.env`):
+   - Copy `backend/.env.example` to a new file at the project root named `.env`
    - Update the following variables in `.env`:
      ```
      DB_HOST=localhost
@@ -102,12 +79,25 @@ If you prefer to run the application without Docker:
      DB_PASSWORD=yourpassword
      NODE_ENV=development
      PORT=3000
+     JWT_SECRET=your-secret-key
+     JWT_EXPIRES_IN=30d
      ```
 
-4. Start the development server:
+4. Start the backend development server (from `backend/`):
    ```bash
    npm run dev
    ```
+
+5. Frontend: in a second terminal, install and start Vite dev server:
+   ```bash
+   cd ../frontend
+   npm install
+   # Optional: override API base (defaults to http://localhost:3000/api)
+   # echo VITE_API_URL=http://localhost:3000/api > .env
+   npm run dev
+   ```
+   - Open the URL printed by Vite (typically http://localhost:5173).
+   - The frontend will call the backend at `VITE_API_URL`.
 
 ### Database Migrations
 
@@ -120,23 +110,26 @@ npx sequelize-cli db:migrate
 npm run migrate
 ```
 
-If you are running the app via Docker Compose, the DB container must be up before running the migrations (or the backend container/migration step should be part of your compose setup).
+Ensure your PostgreSQL instance is running before migrations.
 
 ### Token-based Authentication (JWT)
 
 The backend includes JWT-based authentication utilities and middleware.
 
-Environment variables (set in `backend/.env` or top-level `.env`):
+Environment variables (prefer root `.env`, backend `.env` as fallback):
 
 ```
 JWT_SECRET=your-secret-key
-JWT_EXPIRES_IN=7d
+# Default is 30d if unset; override as needed (e.g., 12h, 7d)
+JWT_EXPIRES_IN=30d
 ```
 
 Auth endpoints:
 
-- `POST /api/auth/register` - body: `{ email, password, firstName, lastName }` — registers a user and returns `{ user, token }`.
-- `POST /api/auth/login` - body: `{ email, password }` — returns `{ user, token }` on success.
+- `POST /api/auth/register` - body: `{ email, password, firstName, lastName }` — registers a user and returns `{ user, token, expiresAt }`.
+- `POST /api/auth/login` - body: `{ email, password }` — returns `{ user, token, expiresAt }` on success.
+
+Frontend stores the token in a cookie (`cps_token`) whose expiry matches `expiresAt`.
 
 Protect routes using the `requireAuth` middleware located at `backend/src/middlewares/auth.ts`. It expects an `Authorization: Bearer <token>` header and attaches the token payload to `req.user`.
 

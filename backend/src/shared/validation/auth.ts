@@ -1,7 +1,8 @@
 import Joi from 'joi';
 import type { RegisterPayload, LoginPayload } from '../types/auth';
 
-export const registerSchema = Joi.object<RegisterPayload>({
+// Note: Avoid using Joi generics because Joi is declared as 'any' in our TS ambient types.
+export const registerSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().min(8).required(),
   firstName: Joi.string().min(1).max(100).required(),
@@ -9,7 +10,7 @@ export const registerSchema = Joi.object<RegisterPayload>({
   role: Joi.string().valid('user', 'admin').optional(),
 });
 
-export const loginSchema = Joi.object<LoginPayload>({
+export const loginSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().required(),
 });

@@ -9,7 +9,7 @@ export const questionSchema = Joi.object({
   prompt: Joi.string().min(1).required(),
   type: Joi.string().valid('single', 'multi', 'boolean').optional().default('single'),
   options: Joi.array().items(optionSchema).min(1).required(),
-}).custom((value, helpers) => {
+}).custom((value: any, helpers: any) => {
   if (value.type === 'boolean') {
     if (!Array.isArray(value.options) || value.options.length !== 2) {
       return helpers.error('question.booleanTwoOptions');

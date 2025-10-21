@@ -9,7 +9,15 @@ import questionsRoutes from './routes/questions';
 import participationRoutes from './routes/participation';
 import { sequelize } from './config/database';
 
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// Load environment variables preferably from project root .env, fallback to backend/.env
+(() => {
+  const rootEnv = path.resolve(__dirname, '../../.env');
+  const backendEnv = path.resolve(__dirname, '../.env');
+  const rootLoaded = dotenv.config({ path: rootEnv });
+  if (!rootLoaded.parsed) {
+    dotenv.config({ path: backendEnv });
+  }
+})();
 
 const app: Express = express();
 
