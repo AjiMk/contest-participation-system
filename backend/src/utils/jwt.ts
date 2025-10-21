@@ -2,7 +2,8 @@ import jwt from 'jsonwebtoken';
 import { TokenPayload } from '../types/index';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+// Extend default lifetime; can be overridden via env
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '30d';
 
 export function signToken(payload: TokenPayload) {
   // Ensure payload contains required claims; convert to plain object to avoid sequelize instances
@@ -28,4 +29,15 @@ export function verifyToken(token: string): TokenPayload {
     email: decoded.email ?? '',
     role: decoded.role ?? '',
   } as TokenPayload;
+}
+
+// Helper to read the JWT exp (in seconds since epoch). Returns null if absent.
+export function getTokenExpiryUnix(token: string): number | null {
+  try {
+    const decoded: any = jwt.decode(token);
+    if (decoded && typeof decoded.exp === 'number') return decoded.exp as number;
+    return null;
+  } catch {
+    return null;
+  }
 }

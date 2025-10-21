@@ -96,9 +96,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         role: res.user.role,
         email: res.user.email,
       };
-      // Persist auth in cookies; keep local storage for app state
-      setCookie('cps_token', res.token, 7);
-      setCookie('cps_user', JSON.stringify(mapped), 7);
+      // Persist auth in cookies with server-declared expiry (fallback to 30 days)
+      {
+        const msPerDay = 24 * 60 * 60 * 1000;
+        const days = res.expiresAt ? Math.max(1 / 24, (new Date(res.expiresAt).getTime() - Date.now()) / msPerDay) : 30;
+        setCookie('cps_token', res.token, days);
+        setCookie('cps_user', JSON.stringify(mapped), days);
+      }
       setCurrentUser(mapped);
       // ensure user catalog contains this user for local features
       const nextUsers = users.some(u => u.id === mapped.id) ? users : [...users, { ...mapped }];
@@ -119,9 +123,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         role: res.user.role,
         email: res.user.email,
       };
-      // Persist auth in cookies
-      setCookie('cps_token', res.token, 7);
-      setCookie('cps_user', JSON.stringify(mapped), 7);
+      // Persist auth in cookies with server-declared expiry (fallback to 30 days)
+      {
+        const msPerDay = 24 * 60 * 60 * 1000;
+        const days = res.expiresAt ? Math.max(1 / 24, (new Date(res.expiresAt).getTime() - Date.now()) / msPerDay) : 30;
+        setCookie('cps_token', res.token, days);
+        setCookie('cps_user', JSON.stringify(mapped), days);
+      }
       setCurrentUser(mapped);
       // Keep local mock users for demo features that depend on it
       const nextUsers = users.some(u => u.id === mapped.id) ? users : [...users, { ...mapped }];

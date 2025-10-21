@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User';
-import { signToken } from '../utils/jwt';
+import { signToken, getTokenExpiryUnix } from '../utils/jwt';
 import type { RegisterPayload, LoginPayload } from '../shared/types/auth';
 import type { UserOutput } from '../models/User';
 
@@ -42,7 +42,7 @@ function toPlainUser(u: UserInstance): PlainUser {
   };
 }
 
-export async function registerUser(data: RegisterPayload): Promise<{ user: Omit<UserOutput, 'password'>; token: string }> {
+export async function registerUser(data: RegisterPayload): Promise<{ user: Omit<UserOutput, 'password'>; token: string; expiresAt: string | null }> {
   const email = data.email.toLowerCase();
   // check if user already exists
   const existing = await User.findOne({ where: { email } });
@@ -55,12 +55,14 @@ export async function registerUser(data: RegisterPayload): Promise<{ user: Omit<
 
   const plain = toPlainUser(user);
   const token = signToken({ userId: plain.id, email: plain.email, role: plain.role });
+  const expUnix = getTokenExpiryUnix(token);
+  const expiresAt = expUnix ? new Date(expUnix * 1000).toISOString() : null;
   // remove password before returning
   const { password: _pw, ...safeUser } = plain;
-  return { user: safeUser as Omit<UserOutput, 'password'>, token };
+  return { user: safeUser as Omit<UserOutput, 'password'>, token, expiresAt };
 }
 
-export async function loginUser(email: string, password: string): Promise<{ user: Omit<UserOutput, 'password'>; token: string }> {
+export async function loginUser(email: string, password: string): Promise<{ user: Omit<UserOutput, 'password'>; token: string; expiresAt: string | null }> {
   // explicitly select password field to ensure it's returned
   const user = (await User.findOne({ where: { email }, attributes: ['id', 'email', 'password', 'firstName', 'lastName', 'role'] })) as UserInstance | null;
   if (!user) throw new Error('Invalid credentials');
@@ -79,7 +81,9 @@ export async function loginUser(email: string, password: string): Promise<{ user
   }
 
   const token = signToken({ userId: plain.id, email: plain.email, role: plain.role });
+  const expUnix = getTokenExpiryUnix(token);
+  const expiresAt = expUnix ? new Date(expUnix * 1000).toISOString() : null;
   // return sanitized user
   const { password: _pw, ...safeUser } = plain;
-  return { user: safeUser as Omit<UserOutput, 'password'>, token };
+  return { user: safeUser as Omit<UserOutput, 'password'>, token, expiresAt };
 }

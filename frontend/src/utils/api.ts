@@ -86,4 +86,6 @@ export type BackendUser = {
 export type AuthResult = {
   user: BackendUser;
   token: string;
+  // ISO-8601 timestamp when the token expires (from backend JWT exp)
+  expiresAt: string | null;
 };
